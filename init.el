@@ -112,7 +112,9 @@ by Prelude.")
 (require 'prelude-mode)
 (require 'prelude-editor)
 (require 'prelude-global-keybindings)
-
+(require 'prettier-js)
+(prettier-mode)
+(setq-default prettier-args '("--single-quote" "true" "--semi" "false"))
 ;; OSX specific settings
 (when (eq system-type 'darwin)
   (require 'prelude-osx))
@@ -138,5 +140,49 @@ by Prelude.")
 (prelude-eval-after-init
  ;; greet the use with some useful tip
  (run-at-time 5 nil 'prelude-tip-of-the-day))
+(defun is-javascript-file ()
+  "Is the current buffer a JavaScript file?"
+  (string= (file-name-extension buffer-file-name) "js"))
 
+(defun nh-javascript-mode-hook ()
+  "JavaScript startup behavior."
+  (when (is-javascript-file)
+    (web-mode-set-content-type "jsx")
+    (jsdoc-minor-mode)
+    (hs-minor-mode)
+    (flow-minor-mode)
+    (local-set-key [(hyper return)] 'prettier)
+    (local-set-key [(control c) (control f)] 'hs-toggle-hiding)
+    (local-set-key [(control c) (control s)] 'hs-toggle-hiding)))
+
+(add-hook 'web-mode-hook 'nh-javascript-mode-hook)
+(add-hook 'js-mode-hook 'nh-javascript-mode-hook)
+(require 'multiple-cursors)
+(global-set-key (kbd "C->") 'mc/mark-next-like-this)
+(global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
+(global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this)
+
+(defun my-flymd-browser-function (url)
+  (let ((process-environment (browse-url-process-environment)))
+    (apply 'start-process
+           (concat "firefox " url)
+           nil
+           "/usr/bin/open"
+           (list "-a" "firefox" url))))
+(setq flymd-browser-open-function 'my-flymd-browser-function)
+(defun open-terminal-here ()
+  "Create or visit a terminal buffer."
+  (interactive)
+  ;; Switch to the current terminal if it already exists
+  (progn
+    (split-window-sensibly (selected-window))
+    (other-window 1)
+    (ansi-term "/bin/bash")))
+
+(provide 'open-terminal-here)
+
+(require 'org)
+(define-key global-map "\C-cl" 'org-store-link)
+(define-key global-map "\C-ca" 'org-agenda)
+(setq org-log-done 'time)
 ;;; init.el ends here
